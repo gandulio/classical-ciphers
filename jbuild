@@ -2,6 +2,6 @@
 
 (executables
  ((names (main))
-  (libraries (containers))
+  (libraries (containers core_kernel))
   )
 )
