@@ -23,11 +23,8 @@ module Cipher = {
       Char.chr(shifted_val)
     };
 
-    let shift_letters = (input_string, ~by as shift_amount) => {
-      let letters = String.to_list(input_string);
-      let shifted = List.map(shift_letter(~by=shift_amount), letters);
-      String.of_list(shifted)
-    };
+    let shift_letters = (input_string, ~by) => 
+      String.map(shift_letter(~by), input_string);
   };
 
   let encrypt = (input_string, ~method) =>
