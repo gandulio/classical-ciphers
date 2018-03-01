@@ -196,7 +196,7 @@ module Playfair = {
       indices: List.combine(proto_matrix, 0--24) |> Char_Map.of_alist_exn,
       array: CCImmutArray.of_list(proto_matrix)
     };
-    let final_plaintext_l = 
+    let final_text_l = 
       switch (mode) {
       | Encrypt => 
         text 
@@ -206,7 +206,7 @@ module Playfair = {
         |> insert_needed_filler
       | Decrypt => String.to_list(text)
       };
-    let pairs = List.sublists_of_len(2, final_plaintext_l);
+    let pairs = List.sublists_of_len(2, final_text_l);
     List.map(substitute_pair(~letters=m_matrix, ~mode), pairs) 
     |> List.flatten 
     |> String.of_list
@@ -214,4 +214,77 @@ module Playfair = {
 
 };
 
-let () = Playfair.substitute("bolloon", ~key="monarchy", ~mode=Encrypt) |> print_endline;
+module Rail_Fence = {
+
+  type real_position_designation = 
+    | Last_Real_Position
+    | Penultimate_Real_Postition;
+
+  type safe_position_designation = 
+    | Safe_Column
+    | Last_Safe_Column(real_position_designation);
+
+  let designate_real = (~row, ~remainder) => {
+    switch (row < remainder) {
+    | true => Penultimate_Real_Postition
+    | false => Last_Real_Position
+    }
+  };
+
+  let designate_safe = (~row, ~column, ~last_safe_col, ~remainder) => {
+    switch (column == last_safe_col) {
+    | true => Last_Safe_Column(designate_real(~row, ~remainder))
+    | false => Safe_Column
+    }
+  };
+
+  let location_to_index = (~row, ~column, ~depth) => {
+    (column * depth) + row
+  };
+
+  let traverse = (text_a, ~text_len, ~depth) => {
+    let rec traverse_r = (text_a, ~row, ~column, ~last_safe_col, ~remainder) => {
+      let designation = designate_safe(~row, ~column, ~last_safe_col, ~remainder);
+      switch (designation) {
+      | Safe_Column => {
+          let current_i = location_to_index(~row, ~column, ~depth);
+          let current_letter = CCImmutArray.get(text_a, current_i);
+          let column = column + 1;
+          let next_letters = traverse_r(text_a, ~row, ~column, ~last_safe_col, ~remainder);
+          [current_letter, ...next_letters]
+        }
+      | Last_Safe_Column(Penultimate_Real_Postition) => {
+          let current_i = location_to_index(~row, ~column, ~depth);
+          let current_letter = CCImmutArray.get(text_a, current_i);
+          let column = column + 1;
+          let final_row_i = location_to_index(~row=row, ~column, ~depth);
+          let final_row_letter = CCImmutArray.get(text_a, final_row_i);
+          let row = row + 1;
+          let next_letters = traverse_r(text_a, ~row, ~column=0, ~last_safe_col, ~remainder);
+          [current_letter, final_row_letter, ...next_letters]
+        }
+      | Last_Safe_Column(Last_Real_Position) => {
+          let current_i = location_to_index(~row, ~column, ~depth);
+          [CCImmutArray.get(text_a, current_i)]
+        }
+      }
+    };
+    let whole_columns = text_len / depth;
+    let last_safe_col = whole_columns - 1;
+    let remainder = text_len - (whole_columns * depth);
+    traverse_r(text_a, ~row=0, ~column=0, ~last_safe_col, ~remainder)
+  };
+
+  let includes_last_col = (row, remainder) => {
+    (remainder > 0) && (row < remainder)
+  };
+
+  let transpose = (text, ~depth) => {
+    let text_len = String.length(text);
+    let text_a = text |> String.to_array |> CCImmutArray.of_array_unsafe;
+    traverse(text_a, ~text_len, ~depth) |> String.of_list
+  };
+
+};
+
+let () = Rail_Fence.transpose("meetmeafterthetogaparty", ~depth=3) |> print_endline;
