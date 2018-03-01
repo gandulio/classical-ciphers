@@ -275,10 +275,6 @@ module Rail_Fence = {
     traverse_r(text_a, ~row=0, ~column=0, ~last_full_col, ~remainder)
   };
 
-  let includes_last_col = (row, remainder) => {
-    (remainder > 0) && (row < remainder)
-  };
-
   let transpose = (text, ~depth) => {
     let text_len = String.length(text);
     let text_a = text |> String.to_array |> CCImmutArray.of_array_unsafe;
