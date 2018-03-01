@@ -95,6 +95,14 @@ module Playfair = {
     List.combine(letters, locations) |> Char_Map.of_alist_exn
   };
 
+  let ensure_even_length = text => {
+    let text_l = String.length(text);
+    switch (text_l mod 2) {
+    | 0 => text
+    | _ => String.pad(~side=`Right, ~c='x', text_l + 1, text)
+    }
+  };
+
   let rec insert_needed_filler = word_l => {
     switch (word_l) {
     | [first, second, ...rest] =>
@@ -190,9 +198,13 @@ module Playfair = {
     };
     let final_plaintext_l = 
       switch (mode) {
-      /* TODO: For encrypting, check whether 'filled' list is of even length and pad if not */
-      | Encrypt => text |> strip_j |> String.to_list |> insert_needed_filler
-      | Decrypt => text |> strip_j |> String.to_list
+      | Encrypt => 
+        text 
+        |> strip_j 
+        |> ensure_even_length 
+        |> String.to_list 
+        |> insert_needed_filler
+      | Decrypt => String.to_list(text)
       };
     let pairs = List.sublists_of_len(2, final_plaintext_l);
     List.map(substitute_pair(~letters=m_matrix, ~mode), pairs) 
