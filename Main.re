@@ -99,7 +99,7 @@ module Playfair = {
     let text_l = String.length(text);
     switch (text_l mod 2) {
     | 0 => text
-    | _ => String.pad(~side=`Right, ~c='x', text_l + 1, text)
+    | _ => text ++ "x"
     }
   };
 
