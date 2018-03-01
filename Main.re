@@ -47,7 +47,7 @@ module Playfair = {
   type meta_matrix = {
     locations: Char_Map.t(matrix_location),
     indices: Char_Map.t(int),
-    array: array(char)
+    array: CCImmutArray.t(char)
   };
 
   let increment_location = location => {
@@ -124,7 +124,7 @@ module Playfair = {
         | _ => index - 1
         }
       };
-    letters.array[new_index]
+    CCImmutArray.get(letters.array, new_index)
   };
 
   let circular_column_shift = (letter, ~letters, ~mode) => {
@@ -142,7 +142,7 @@ module Playfair = {
         | false => index - 5
         }
       };
-    letters.array[new_index]
+    CCImmutArray.get(letters.array, new_index)
   };
 
   let location_to_index = location => {
@@ -156,8 +156,8 @@ module Playfair = {
     let b_loc = Map.find_exn(letters.locations, b);
     let new_a_loc = { row: a_loc.row, column: b_loc.column };
     let new_b_loc = { row: b_loc.row, column: a_loc.column };
-    let new_a = new_a_loc |> location_to_index |> Array.get(letters.array);
-    let new_b = new_b_loc |> location_to_index |> Array.get(letters.array);
+    let new_a = new_a_loc |> location_to_index |> CCImmutArray.get(letters.array);
+    let new_b = new_b_loc |> location_to_index |> CCImmutArray.get(letters.array);
     [new_a, new_b]
   };
 
@@ -180,7 +180,7 @@ module Playfair = {
     let m_matrix = {
       locations: build_map(proto_matrix),
       indices: List.combine(proto_matrix, 0--24) |> Char_Map.of_alist_exn,
-      array: Array.of_list(proto_matrix)
+      array: CCImmutArray.of_list(proto_matrix)
     };
     let final_plaintext_l = 
       switch (mode) {
