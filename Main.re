@@ -1,6 +1,10 @@
 open Containers;
 open Containers.List.Infix;
 
+type operation_mode = 
+  | Encrypt
+  | Decrypt;
+
 module Caesar = {
   let shift_letter = (letter, ~by as shift_amount) => {
     let last_letter_code  = 122; /* ASCII code for 'z' */
@@ -26,6 +30,22 @@ module Playfair = {
   module Char_Map = Core_kernel.Char.Map;
   module Map = Core_kernel.Map;
 
+  type matrix_location = {
+    row: int,
+    column: int
+  };
+
+  type meta_matrix = {
+    locations: Char_Map.t(matrix_location),
+    indices: Char_Map.t(int),
+    array: CCImmutArray.t(char)
+  };
+
+  type matrix_alignment = 
+    | Column
+    | Row
+    | None;
+
   let strip_j = (input_string) => 
     String.replace(~which=`All, ~sub="j", ~by="i", input_string);
 
@@ -37,17 +57,6 @@ module Playfair = {
     let key_s = Char_Set.of_list(key_l);
     let filtered_alphabet = Char_Set.diff(alphabet, key_s) |> Char_Set.to_list;
     List.append(key_l, filtered_alphabet)
-  };
-
-  type matrix_location = {
-    row: int,
-    column: int
-  };
-
-  type meta_matrix = {
-    locations: Char_Map.t(matrix_location),
-    indices: Char_Map.t(int),
-    array: CCImmutArray.t(char)
   };
 
   let increment_location = location => {
@@ -91,11 +100,6 @@ module Playfair = {
     }
   };
 
-  type matrix_alignment = 
-    | Column
-    | Row
-    | None;
-
   let get_alignment = (pair, locations) => {
     let a = List.nth(pair, 0);
     let b = List.nth(pair, 1);
@@ -104,10 +108,6 @@ module Playfair = {
     location_a.column == location_b.column ?
       Column : location_a.row == location_b.row ? Row : None;
   };
-
-  type substitution_mode = 
-    | Encrypt
-    | Decrypt;
 
   let circular_row_shift = (letter, ~letters, ~mode) => {
     let index = Map.find_exn(letters.indices, letter);
@@ -196,4 +196,4 @@ module Playfair = {
 
 };
 
-let () = Playfair.substitute("bolloon", ~key="monarchy", ~mode=Encrypt) |> print_endline ;
+let () = Playfair.substitute("bolloon", ~key="monarchy", ~mode=Encrypt) |> print_endline;
