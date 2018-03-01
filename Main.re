@@ -21,8 +21,14 @@ module Caesar = {
     Char.chr(shifted_val)
   };
 
-  let shift_letters = (input_string, ~by) => 
-    String.map(shift_letter(~by), input_string);
+  let shift_letters = (input_string, ~by, ~mode) => {
+    let by = 
+      switch (mode) {
+      | Encrypt => by
+      | Decrypt => Int.neg(by)
+      };
+    String.map(shift_letter(~by), input_string)
+  };
 };
 
 module Playfair = {
