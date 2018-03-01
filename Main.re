@@ -221,8 +221,8 @@ module Rail_Fence = {
     | Penultimate_Real_Postition;
 
   type safe_position_designation = 
-    | Safe_Column
-    | Last_Safe_Column(real_position_designation);
+    | Full_Column
+    | Last_Full_Column(real_position_designation);
 
   let designate_real = (~row, ~remainder) => {
     switch (row < remainder) {
@@ -231,10 +231,10 @@ module Rail_Fence = {
     }
   };
 
-  let designate_safe = (~row, ~column, ~last_safe_col, ~remainder) => {
-    switch (column == last_safe_col) {
-    | true => Last_Safe_Column(designate_real(~row, ~remainder))
-    | false => Safe_Column
+  let designate_safe = (~row, ~column, ~last_full_col, ~remainder) => {
+    switch (column == last_full_col) {
+    | true => Last_Full_Column(designate_real(~row, ~remainder))
+    | false => Full_Column
     }
   };
 
@@ -243,36 +243,36 @@ module Rail_Fence = {
   };
 
   let traverse = (text_a, ~text_len, ~depth) => {
-    let rec traverse_r = (text_a, ~row, ~column, ~last_safe_col, ~remainder) => {
-      let designation = designate_safe(~row, ~column, ~last_safe_col, ~remainder);
+    let rec traverse_r = (text_a, ~row, ~column, ~last_full_col, ~remainder) => {
+      let designation = designate_safe(~row, ~column, ~last_full_col, ~remainder);
       switch (designation) {
-      | Safe_Column => {
+      | Full_Column => {
           let current_i = location_to_index(~row, ~column, ~depth);
           let current_letter = CCImmutArray.get(text_a, current_i);
           let column = column + 1;
-          let next_letters = traverse_r(text_a, ~row, ~column, ~last_safe_col, ~remainder);
+          let next_letters = traverse_r(text_a, ~row, ~column, ~last_full_col, ~remainder);
           [current_letter, ...next_letters]
         }
-      | Last_Safe_Column(Penultimate_Real_Postition) => {
+      | Last_Full_Column(Penultimate_Real_Postition) => {
           let current_i = location_to_index(~row, ~column, ~depth);
           let current_letter = CCImmutArray.get(text_a, current_i);
           let column = column + 1;
           let final_row_i = location_to_index(~row=row, ~column, ~depth);
           let final_row_letter = CCImmutArray.get(text_a, final_row_i);
           let row = row + 1;
-          let next_letters = traverse_r(text_a, ~row, ~column=0, ~last_safe_col, ~remainder);
+          let next_letters = traverse_r(text_a, ~row, ~column=0, ~last_full_col, ~remainder);
           [current_letter, final_row_letter, ...next_letters]
         }
-      | Last_Safe_Column(Last_Real_Position) => {
+      | Last_Full_Column(Last_Real_Position) => {
           let current_i = location_to_index(~row, ~column, ~depth);
           [CCImmutArray.get(text_a, current_i)]
         }
       }
     };
-    let whole_columns = text_len / depth;
-    let last_safe_col = whole_columns - 1;
-    let remainder = text_len - (whole_columns * depth);
-    traverse_r(text_a, ~row=0, ~column=0, ~last_safe_col, ~remainder)
+    let full_columns = text_len / depth;
+    let last_full_col = full_columns - 1;
+    let remainder = text_len - (full_columns * depth);
+    traverse_r(text_a, ~row=0, ~column=0, ~last_full_col, ~remainder)
   };
 
   let includes_last_col = (row, remainder) => {
