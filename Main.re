@@ -190,6 +190,7 @@ module Playfair = {
   };
 
   let substitute = (text, ~key, ~mode) => {
+    /* TODO: handle removal of duplicates from provided key */
     let proto_matrix = build_list(key);
     let m_matrix = {
       locations: build_map(proto_matrix),
