@@ -374,13 +374,13 @@ module Row_Transpose = {
               traverse_r(map, 0, column + 1, rows, columns, column_list);
             [current, ...next];
           } :
-          [];
+          [Core_kernel.Map.find_exn(map, {row, column: column_list[column]})];
     let output_l = traverse_r(map, 0, 0, rows, columns, key_l);
     String.of_list(output_l)
   };
 };
 
-let text = "securitypasscardsareoftenusedtogainentryintoareasandbuildingswithrestrictedaccessfindoutwhatdataiskeptonanencodedsecuritypasscardandhowtheywork";
-let key = "45132";
+let text = "attackpostponeduntiltwoam";
+let key = "3421567";
 
 let () = Row_Transpose.process(text, ~key, ~mode=Encrypt) |> print_endline;
