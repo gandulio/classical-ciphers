@@ -307,72 +307,74 @@ module Row_Transpose = {
     include Core_kernel.Comparable.Make(T);
   };
 
-  module LMap = Core_kernel.Map.Make(Loc_Comp);
-
-  let increment_location = (location, column_count) => {
-    switch (location.column == (column_count - 1)) {
-    | true => {row: location.row + 1, column: 0}
-    | false => {...location, column: location.column + 1}
-    }
-  };
+  let increment_location = (location, column_count) =>
+    location.column == column_count - 1 ?
+      {row: location.row + 1, column: 0} :
+      {...location, column: location.column + 1};
 
   let calculate_locations = (~cell_count, ~column_count) => {
-    let rec calculate = (cells_remaining, ~previous=?, ()) => {
-      switch (cells_remaining) {
+    let rec calculate = (cells_remaining, ~previous=?, ()) =>
+      switch cells_remaining {
       | 0 => []
-      | _ => {
-          let location = 
-            switch (previous) {
-            | Some(location) => increment_location(location, column_count)
-            | None => {row: 0, column: 0}  /* This case only occurs for 1st element */
-            };
-          [location, ...calculate(cells_remaining - 1, ~previous=location, ())]
-        }
-      }
-    };
+      | _ =>
+        let location =
+          switch previous {
+          | Some(location) => increment_location(location, column_count)
+          | None => {row: 0, column: 0} /* This case only occurs for 1st element */
+          };
+        [location, ...calculate(cells_remaining - 1, ~previous=location, ())];
+      };
     calculate(cell_count, ())
   };
 
   let process = (text, ~key, ~mode) => {
     let _mode = mode;
     let key_l_temp = String.to_list(key);
-    let key_l = List.map((value) => {
-      let value_s = String.make(1, value);
-      int_of_string(value_s) - 1
-    }, key_l_temp) |> Array.of_list;
+    let key_l =
+      List.map(
+        value => {
+          let value_s = String.make(1, value);
+          int_of_string(value_s) - 1;
+        },
+        key_l_temp
+      )
+      |> Array.of_list;
     let text_len = String.length(text);
     let columns = String.length(key);
     let rows_temp = text_len / columns;
-    let rows = switch (text_len mod columns) {
-    | 0 => rows_temp
-    | _ => rows_temp + 1
-    };
-    let final_text = switch (text_len mod columns) {
-    | 0 => text
-    | _ => String.pad(~side=`Right, ~c='x', rows * columns, text)
-    };
+    let rows =
+      switch (text_len mod columns) {
+      | 0 => rows_temp
+      | _ => rows_temp + 1
+      };
+    let final_text =
+      switch (text_len mod columns) {
+      | 0 => text
+      | _ => String.pad(~side=`Right, ~c='x', rows * columns, text)
+      };
     let final_text_l = String.to_list(final_text);
-    let locations = calculate_locations(~cell_count=(rows * columns), ~column_count=columns);
+    let locations =
+      calculate_locations(~cell_count=rows * columns, ~column_count=columns);
     let proto_map = List.combine(locations, final_text_l);
     let map = Core_kernel.Map.of_alist_exn((module Loc_Comp), proto_map);
-    let rec traverse_r = (map, row, column, rows, columns, column_list) => {
-      switch (row < (rows - 1)) {
-      | true => {
-        let current = Core_kernel.Map.find_exn(map, {row: row, column: column_list[column]});
-        let next = traverse_r(map, row + 1, column, rows, columns, column_list);
-        [current, ...next]
-      } 
-      | false =>
-        switch (column < (columns - 1)) {
-        | true => {
-          let current = Core_kernel.Map.find_exn(map, {row: row, column: column_list[column]});
-          let next = traverse_r(map, 0, column + 1, rows, columns, column_list);
-          [current, ...next]
-        } 
-        | false => []
-        }
-      }
-    };
+    let rec traverse_r = (map, row, column, rows, columns, column_list) =>
+      row < rows - 1 ?
+        {
+          let current =
+            Core_kernel.Map.find_exn(map, {row, column: column_list[column]});
+          let next =
+            traverse_r(map, row + 1, column, rows, columns, column_list);
+          [current, ...next];
+        } :
+        column < columns - 1 ?
+          {
+            let current =
+              Core_kernel.Map.find_exn(map, {row, column: column_list[column]});
+            let next =
+              traverse_r(map, 0, column + 1, rows, columns, column_list);
+            [current, ...next];
+          } :
+          [];
     let output_l = traverse_r(map, 0, 0, rows, columns, key_l);
     String.of_list(output_l)
   };
