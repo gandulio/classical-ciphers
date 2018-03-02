@@ -278,6 +278,7 @@ module Rail_Fence = {
     traverse_r(text_a, ~row=0, ~column=0, ~last_full_col, ~remainder)
   };
 
+  /* TODO: Handle decrypt */
   let transpose = (text, ~depth) => {
     let text_len = String.length(text);
     let text_a = text |> String.to_array |> CCImmutArray.of_array_unsafe;
@@ -328,6 +329,7 @@ module Row_Transpose = {
   };
 
   let process = (text, ~key, ~mode) => {
+    /* TODO: handle decrypt */
     let _mode = mode;
     let key_l_temp = String.to_list(key);
     let key_l =
@@ -382,5 +384,11 @@ module Row_Transpose = {
 
 let text = "attackpostponeduntiltwoam";
 let key = "3421567";
+
+/* TODO: process input strings to ensure:
+     1. lowercase
+     2. No spaces
+     3. No punctuation
+*/
 
 let () = Row_Transpose.process(text, ~key, ~mode=Encrypt) |> print_endline;
