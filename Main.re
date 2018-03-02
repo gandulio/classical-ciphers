@@ -322,7 +322,7 @@ module Row_Transpose = {
           | Some(location) => increment_location(location, column_count)
           | None => {row: 0, column: 0} /* This case only occurs for 1st element */
           };
-        [location, ...calculate(cells_remaining - 1, ~previous=location, ())];
+        [location, ...calculate(cells_remaining - 1, ~previous=location, ())]
       };
     calculate(cell_count, ())
   };
@@ -364,7 +364,7 @@ module Row_Transpose = {
             Core_kernel.Map.find_exn(map, {row, column: column_list[column]});
           let next =
             traverse_r(map, row + 1, column, rows, columns, column_list);
-          [current, ...next];
+          [current, ...next]
         } :
         column < columns - 1 ?
           {
@@ -372,7 +372,7 @@ module Row_Transpose = {
               Core_kernel.Map.find_exn(map, {row, column: column_list[column]});
             let next =
               traverse_r(map, 0, column + 1, rows, columns, column_list);
-            [current, ...next];
+            [current, ...next]
           } :
           [Core_kernel.Map.find_exn(map, {row, column: column_list[column]})];
     let output_l = traverse_r(map, 0, 0, rows, columns, key_l);
