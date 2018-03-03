@@ -279,7 +279,8 @@ module Rail_Fence = {
   };
 
   /* TODO: Handle decrypt */
-  let transpose = (text, ~depth) => {
+  let transpose = (text, ~depth, ~mode) => {
+    let _mode = mode;
     let text_len = String.length(text);
     let text_a = text |> String.to_array |> CCImmutArray.of_array_unsafe;
     traverse(text_a, ~text_len, ~depth) |> String.of_list
@@ -418,16 +419,99 @@ module Vigenere = {
 
 };
 
+let mode_string_to_type = (mode_s) => {
+  switch (mode_s) {
+  | "ENC" => Some(Encrypt)
+  | "DEC" => Some(Decrypt)
+  | _ => None
+  }
+};
+
+type cipher = 
+  | Caesar
+  | Playfair
+  | Rail_Fence
+  | Row_Transpose
+  | Vigenere;
+
+let cipher_name_to_type = (name_s) => {
+  switch (name_s) {
+  | "CES" => Some(Caesar)
+  | "PLF" => Some(Playfair)
+  | "RFC" => Some(Rail_Fence)
+  | "RTS" => Some(Row_Transpose)
+  | "VIG" => Some(Vigenere)
+  | _ => None
+  }
+};
+
+type args_status = 
+  | Fine(cipher, operation_mode, string)
+  | Problems(string);
+
+let check_args = (~cipher_type, ~mode, ~text) => {
+  switch (cipher_type, mode, text) {
+  | (Some(cipher_type), Some(mode), Some(text)) => Fine(cipher_type, mode, text)
+  | _ =>
+      Problems(
+        switch (text) {
+        | None => "Could not read input file\n"
+        | _ => ""
+        } ++
+        switch (cipher_type, mode) {
+        | (None, None) => "Incorrect values for <CIPHER NAME> and <CIPHER MODE>\n"
+        | (_, None) => "Incorrect value for <CIPHER NAME>\n"
+        | (None, _) => "Incorrect value for <CIPHER MODE>\n"
+        | _ => ""
+        }
+      )
+  }
+};
+
+/* TODO: Debug rail fence */
+
 let main = () => {
-  let text = "wearediscoveredsaveyourself";
-  let key = "deceptive";
+  let (arg_count, arg_values) = CLI.init();
 
   /* TODO: process input strings to ensure:
        1. lowercase
        2. No spaces
        3. No punctuation
   */
-  Vigenere.process(text, ~key, ~mode=Encrypt) |> print_endline
+
+  /* TODO Split this up into functions */
+  switch (arg_count) {
+  | x when x < 6 => "Not enough arguments"
+  | x when x > 6 => "Too many arguments"
+  | _ => {
+      let cipher_type = List.nth(arg_values, 1) |> cipher_name_to_type;
+      let key = List.nth(arg_values, 2);
+      let mode = List.nth(arg_values, 3) |> mode_string_to_type;
+      let input_file_name = List.nth(arg_values, 4);
+      let _output_file_name = List.nth(arg_values, 5);
+
+      let text = CCIO.(with_in(input_file_name, read_line));
+
+      switch (check_args(~cipher_type, ~mode, ~text)) {
+      | Problems(p_str) => p_str
+      | Fine(cipher_type, mode, text) => 
+          switch (cipher_type) {
+          | Caesar => {
+            /* TODO: Handle case where parse fails */
+            let by = int_of_string(key);
+            Caesar.shift_letters(text, ~by, ~mode)
+          }
+          | Playfair => Playfair.substitute(text, ~key, ~mode)
+          | Rail_Fence => {
+              let depth = int_of_string(key);
+              Rail_Fence.transpose(text, ~depth, ~mode)
+            }
+          | Row_Transpose => Row_Transpose.process(text, ~key, ~mode)
+          | Vigenere => Vigenere.process(text, ~key, ~mode)
+          }
+      }
+    }
+  } |> print_endline
 };
 
 let () = main()

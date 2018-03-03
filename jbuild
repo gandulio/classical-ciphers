@@ -2,6 +2,6 @@
 
 (executables
  ((names (main))
-  (libraries (containers containers.data core_kernel))
+  (libraries (containers containers.data core_kernel minicli))
   )
 )
