@@ -382,13 +382,52 @@ module Row_Transpose = {
   };
 };
 
-let text = "attackpostponeduntiltwoam";
-let key = "3421567";
+module Vigenere = {
 
-/* TODO: process input strings to ensure:
-     1. lowercase
-     2. No spaces
-     3. No punctuation
-*/
+  let letter_to_index = (letter) => {
+    Char.code(letter) - 97
+  };
 
-let () = Row_Transpose.process(text, ~key, ~mode=Encrypt) |> print_endline;
+  let fake_vigenere_matrix = (a, b) => {
+    ((a + b) mod 26) + 97
+  };
+
+  let substitute = (text_letter, key_letter) => {
+    let text_index = letter_to_index(text_letter);
+    let key_index = letter_to_index(key_letter);
+    fake_vigenere_matrix(text_index, key_index) |> Char.chr
+  };
+
+  let process = (text, ~key, ~mode) => {
+    /* TODO: Handle decrypt */
+    let _mode = mode;
+    let text_length = String.length(text);
+    let rec repeat_key = (key, repetitions) => {
+      repetitions > 1 ? key ++ repeat_key(key, repetitions -1) : key
+    };
+    let key_length = String.length(key);
+    let repetitions = text_length / key_length;
+    let intermediate_key = repeat_key(key, repetitions);
+    let cap_key = (key, remainder) => {
+      key ++ String.sub(key, 0, remainder)
+    };
+    let remainder = text_length mod key_length;
+    let final_key = cap_key(intermediate_key, remainder);
+    String.map2(substitute, text, final_key)
+  };
+
+};
+
+let main = () => {
+  let text = "wearediscoveredsaveyourself";
+  let key = "deceptive";
+
+  /* TODO: process input strings to ensure:
+       1. lowercase
+       2. No spaces
+       3. No punctuation
+  */
+  Vigenere.process(text, ~key, ~mode=Encrypt) |> print_endline
+};
+
+let () = main()
