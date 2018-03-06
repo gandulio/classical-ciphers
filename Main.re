@@ -298,7 +298,7 @@ module Row_Transpose = {
       | 0 => []
       | _ =>
         let location =
-          switch previous {
+          switch (previous) {
           | Some(location) => increment_location(location, column_count)
           | None => {row: 0, column: 0} /* This case only occurs for 1st element */
           };
@@ -324,15 +324,15 @@ module Row_Transpose = {
       };
     calculate(cell_count, ());
   };
-  let make_multi = (column_list) => {
-    let rec make = (columns, index, map) => {
-      switch columns {
+  let make_multi = column_list => {
+    let rec make = (columns, index, map) =>
+      switch (columns) {
       | [] => map
-      | [first, ...rest] => Int_MMap.add(make(rest, index + 1, map), index, first)
+      | [first, ...rest] =>
+        Int_MMap.add(make(rest, index + 1, map), index, first)
       };
-    };
     let map = Int_MMap.empty;
-    make(column_list, 0, map)
+    make(column_list, 0, map);
   };
   let process_en = (text, ~key) => {
     let key_l_temp = String.to_list(key);
@@ -387,12 +387,11 @@ module Row_Transpose = {
     let output_l = traverse_r(map, 0, 0, rows, columns, key_l);
     String.of_list(output_l);
   };
-  let map_get = (bimap, to_find) => {
+  let map_get = (bimap, to_find) =>
     switch (Int_MMap.find1_right(bimap, to_find)) {
     | None => 0
     | Some(num) => num
-    }
-  };
+    };
   let process_dec = (text, ~key) => {
     let key_l_temp = String.to_list(key);
     let key_l =
@@ -411,11 +410,12 @@ module Row_Transpose = {
       calculate_locations_dec(~cell_count=rows * columns, ~row_count=rows);
     let text_l = String.to_list(text);
     let proto_map = List.combine(locations, text_l);
-    let letter_map = Core_kernel.Map.of_alist_exn((module Loc_Comp), proto_map);
+    let letter_map =
+      Core_kernel.Map.of_alist_exn((module Loc_Comp), proto_map);
     let rec traverse_r = (map, row, column, rows, columns, column_map) =>
       (column < columns - 1) ?
         {
-          let current = 
+          let current =
             Core_kernel.Map.find_exn(
               map,
               {row, column: map_get(column_map, column)}
@@ -425,23 +425,29 @@ module Row_Transpose = {
           [current, ...next];
         } :
         (row < rows - 1) ?
-        {
-          let current =
-            Core_kernel.Map.find_exn(map, {row, column: map_get(column_map, column)});
-          let next =
-            traverse_r(map, row + 1, 0, rows, columns, column_map);
-          [current, ...next];
-        } :
-        [Core_kernel.Map.find_exn(map, {row, column: map_get(column_map, column)})];
+          {
+            let current =
+              Core_kernel.Map.find_exn(
+                map,
+                {row, column: map_get(column_map, column)}
+              );
+            let next = traverse_r(map, row + 1, 0, rows, columns, column_map);
+            [current, ...next];
+          } :
+          [
+            Core_kernel.Map.find_exn(
+              map,
+              {row, column: map_get(column_map, column)}
+            )
+          ];
     let output_l = traverse_r(letter_map, 0, 0, rows, columns, bidir_map);
     String.of_list(output_l);
   };
-  let process = (text, ~key, ~mode) => {
-    switch (mode) {
+  let process = (text, ~key, ~mode) =>
+    switch mode {
     | Encrypt => process_en(text, ~key)
     | Decrypt => process_dec(text, ~key)
-    }
-  };
+    };
 };
 
 module Vigenere = {
