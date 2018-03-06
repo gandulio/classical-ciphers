@@ -170,9 +170,11 @@ module Playfair = {
       | Encrypt =>
         text
         |> strip_j
-        |> ensure_even_length
         |> String.to_list
         |> insert_needed_filler
+        |> String.of_list
+        |> ensure_even_length
+        |> String.to_list
       | Decrypt => String.to_list(text)
       };
     let pairs = List.sublists_of_len(2, final_text_l);
