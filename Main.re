@@ -445,10 +445,23 @@ module Row_Transpose = {
 };
 
 module Vigenere = {
-  let substitute = (text_letter, key_letter) => {
+  let letter_to_index = letter => Char.code(letter);
+  let fake_vigenere_matrix = (a, b, mode) => {
+    switch (mode) {
+    | Encrypt => {
+        let out = (a + b) - 97;
+        (out > 122) ? (out - 26) : out
+      }
+    | Decrypt => {
+        let out = (a - b) + 97;
+        (out < 97) ? (out + 26) : out
+      }
+    }
+  };
+  let substitute = (text_letter, key_letter, ~mode) => {
     let text_index = letter_to_index(text_letter);
     let key_index = letter_to_index(key_letter);
-    fake_vigenere_matrix(text_index, key_index) |> Char.chr;
+    fake_vigenere_matrix(text_index, key_index, mode) |> Char.chr;
   };
   let process = (text, ~key, ~mode) => {
     let text_length = String.length(text);
@@ -460,7 +473,7 @@ module Vigenere = {
     let cap_key = (key, remainder) => key ++ String.sub(key, 0, remainder);
     let remainder = text_length mod key_length;
     let final_key = cap_key(intermediate_key, remainder);
-    String.map2(substitute, text, final_key);
+    String.map2(substitute(~mode), text, final_key);
   };
 };
 
