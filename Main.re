@@ -259,12 +259,54 @@ module Rail_Fence = {
     let remainder = text_len - full_columns * depth;
     traverse_r(text_a, ~row=0, ~column=0, ~last_full_col, ~remainder, ~depth);
   };
-  /* TODO: Handle decrypt */
+  let letters_pass = (start_ind, depth, base_columns, remainder, text_len, text) => {
+    let rec grab = (at, depth, base_columns, offsets_left, text_len, text) => {
+      let current = CCImmutArray.get(text, at);
+      let index_increment = (offsets_left > 0) ? (base_columns + 1) : base_columns;
+      let next_index = at + index_increment;
+      let next = (next_index < text_len) ? 
+        grab(next_index, depth, base_columns, offsets_left - 1, text_len, text) : [];
+      [current, ...next]
+    };
+    grab(start_ind, depth, base_columns, remainder, text_len, text)
+  };
+  let extra_pass = (start_ind, depth, remainder, text) => {
+    let rec grab = (at, depth, grab_count, text) => {
+      switch (grab_count > 0) {
+      | true => {
+        let current = CCImmutArray.get(text, at);
+        let next = grab(at + (depth + 1), depth, grab_count - 1, text);
+        [current, ...next]
+      }
+      | false => []
+      }
+    };
+    grab(start_ind, depth, remainder, text)
+  };
+  let do_passes = (depth, text_len, text) => {
+    let base_limit = text_len / depth;
+    let remainder = text_len mod depth;
+    let rec handle = (current_pass, base_limit, depth, remainder, text_len, text) => {
+      (current_pass < base_limit) ? ({
+        List.append(
+          letters_pass(current_pass, depth, base_limit, remainder, text_len, text), 
+          handle(current_pass + 1, base_limit, depth, remainder, text_len, text)
+        )}) : 
+        ({
+          (remainder > 0) ?
+          extra_pass(current_pass, depth, remainder, text) :
+          []
+        })
+    };
+    handle(0, base_limit, depth, remainder, text_len, text)
+  };
   let transpose = (text, ~depth, ~mode) => {
-    let _mode = mode;
     let text_len = String.length(text);
     let text_a = text |> String.to_array |> CCImmutArray.of_array_unsafe;
-    traverse(text_a, ~text_len, ~depth) |> String.of_list;
+    switch (mode) {
+    | Encrypt => traverse(text_a, ~text_len, ~depth) |> String.of_list
+    | Decrypt => do_passes(depth, text_len, text_a) |> String.of_list
+    };
   };
 };
 
