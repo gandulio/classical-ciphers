@@ -577,6 +577,21 @@ let check_args = (~cipher_type, ~mode, ~text) =>
     )
   };
 
+type cipher_result = 
+  | Success(string, string)
+  | Failure(string);
+
+let handle_result = res =>
+  switch (res) {
+  | Failure(problem_string) => print_endline(problem_string)
+  | Success(out_file_name, out_text) => {
+      let out_file = CCIO.File.make(out_file_name);
+      let final_out = out_text ++ "\n";
+      CCIO.File.write_exn(out_file, final_out);
+      print_endline("Success!")
+    }
+  };
+
 let main = () => {
   let (arg_count, arg_values) = CLI.init();
   /* TODO: process input strings to ensure:
@@ -587,34 +602,36 @@ let main = () => {
   /* TODO Split this up into functions */
   (
     switch arg_count {
-    | x when x < 6 => "Not enough arguments"
-    | x when x > 6 => "Too many arguments"
+    | x when x < 6 => Failure("Not enough arguments")
+    | x when x > 6 => Failure("Too many arguments")
     | _ =>
       let cipher_type = List.nth(arg_values, 1) |> cipher_name_to_type;
       let key = List.nth(arg_values, 2);
       let mode = List.nth(arg_values, 3) |> mode_string_to_type;
       let input_file_name = List.nth(arg_values, 4);
-      let _output_file_name = List.nth(arg_values, 5);
+      let output_file_name = List.nth(arg_values, 5);
       let text = CCIO.(with_in(input_file_name, read_line));
       switch (check_args(~cipher_type, ~mode, ~text)) {
-      | Problems(p_str) => p_str
+      | Problems(p_str) => Failure(p_str)
       | Fine(cipher_type, mode, text) =>
-        switch cipher_type {
-        | Caesar =>
-          /* TODO: Handle case where parse fails */
-          let by = int_of_string(key);
-          Caesar.shift_letters(text, ~by, ~mode);
-        | Playfair => Playfair.substitute(text, ~key, ~mode)
-        | Rail_Fence =>
-          let depth = int_of_string(key);
-          Rail_Fence.transpose(text, ~depth, ~mode);
-        | Row_Transpose => Row_Transpose.process(text, ~key, ~mode)
-        | Vigenere => Vigenere.process(text, ~key, ~mode)
-        }
+        let out_text = 
+          switch cipher_type {
+          | Caesar =>
+            /* TODO: Handle case where parse fails */
+            let by = int_of_string(key);
+            Caesar.shift_letters(text, ~by, ~mode);
+          | Playfair => Playfair.substitute(text, ~key, ~mode)
+          | Rail_Fence =>
+            let depth = int_of_string(key);
+            Rail_Fence.transpose(text, ~depth, ~mode);
+          | Row_Transpose => Row_Transpose.process(text, ~key, ~mode)
+          | Vigenere => Vigenere.process(text, ~key, ~mode)
+          };
+        Success(output_file_name, out_text)
       }
     }
   )
-  |> print_endline;
+  |> handle_result;
 };
 
 let () = main();
