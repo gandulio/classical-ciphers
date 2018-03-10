@@ -15,15 +15,15 @@ module Map = Core_kernel.Map;
 
 module Caesar = {
   let shift_letter = (letter, ~by as shift_amount) => {
-    let last_letter_code = 122; /* ASCII code for 'z' */
-    let first_letter_code = 97; /* ASCII code for 'a' */
-    let code_ceiling = last_letter_code + 1;
+    let last_letter = 122; /* ASCII code for 'z' */
+    let first_letter = 97; /* ASCII code for 'a' */
+    let code_ceiling = last_letter + 1;
     let input_code = letter |> Char.lowercase_ascii |> Char.code;
-    let shifted_val_temp = (input_code + shift_amount) mod code_ceiling;
-    let shifted_val =
-      (shifted_val_temp < first_letter_code) ?
-        (shifted_val_temp + first_letter_code) : shifted_val_temp;
-    Char.chr(shifted_val);
+    let shifted_temp = (input_code + shift_amount) mod code_ceiling;
+    let shifted =
+      (shifted_temp < first_letter) ?
+        (shifted_temp + first_letter) : shifted_temp;
+    Char.chr(shifted);
   };
   let shift_letters = (input_string, ~by, ~mode) => {
     let by =
