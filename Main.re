@@ -21,8 +21,7 @@ module Caesar = {
     let input_code = letter |> Char.lowercase_ascii |> Char.code;
     let shifted_temp = (input_code + shift_amount) mod code_ceiling;
     let shifted =
-      (shifted_temp < first_letter) ?
-        (shifted_temp + first_letter) : shifted_temp;
+      shifted_temp < first_letter ? shifted_temp + first_letter : shifted_temp;
     Char.chr(shifted);
   };
   let shift_letters = (input_string, ~by, ~mode) => {
@@ -85,11 +84,11 @@ module Playfair = {
     let locations = calculate_locations();
     List.combine(letters, locations) |> Char_Map.of_alist_exn;
   };
-  let ensure_even_length = text => {
-    let text_l = String.length(text);
-    switch (text_l mod 2) {
-    | 0 => text
-    | _ => text ++ "x"
+  let ensure_even_length = text_l => {
+    let text_len = List.length(text_l);
+    switch (text_len mod 2) {
+    | 0 => text_l
+    | _ => List.append(text_l, ['x'])
     };
   };
   let rec insert_needed_filler = word_l =>
@@ -106,8 +105,8 @@ module Playfair = {
     let b = List.nth(pair, 1);
     let location_a = Map.find_exn(locations, a);
     let location_b = Map.find_exn(locations, b);
-    (location_a.column == location_b.column) ?
-      Column : (location_a.row == location_b.row) ? Row : None;
+    location_a.column == location_b.column ?
+      Column : location_a.row == location_b.row ? Row : None;
   };
   let circular_row_shift = (letter, ~letters, ~mode) => {
     let index = Map.find_exn(letters.indices, letter);
@@ -130,8 +129,8 @@ module Playfair = {
     let index = Map.find_exn(letters.indices, letter);
     let new_index =
       switch (mode) {
-      | Encrypt => (index > 19) ? (index - 20) : (index + 5)
-      | Decrypt => (index < 5) ? (index + 20) : (index - 5)
+      | Encrypt => index > 19 ? index - 20 : index + 5
+      | Decrypt => index < 5 ? index + 20 : index - 5
       };
     CCImmutArray.get(letters.array, new_index);
   };
@@ -161,7 +160,7 @@ module Playfair = {
       ]
     | None => alternate_replace(pair, ~letters)
     };
-  let substitute = (text, ~key, ~mode) => {
+  let substitute = (input_text, ~key, ~mode) => {
     /* TODO: handle removal of duplicates from provided key */
     let proto_matrix = build_list(key);
     let m_matrix = {
@@ -172,14 +171,12 @@ module Playfair = {
     let final_text_l =
       switch (mode) {
       | Encrypt =>
-        text
+        input_text
         |> strip_j
         |> String.to_list
         |> insert_needed_filler
-        |> String.of_list
         |> ensure_even_length
-        |> String.to_list
-      | Decrypt => String.to_list(text)
+      | Decrypt => String.to_list(input_text)
       };
     let pairs = List.sublists_of_len(2, final_text_l);
     List.map(substitute_pair(~letters=m_matrix, ~mode), pairs)
@@ -196,9 +193,9 @@ module Rail_Fence = {
     | Full_Column
     | Last_Full_Column(real_position_designation);
   let designate_real = (~row, ~remainder) =>
-    (row < remainder) ? Penultimate_Real_Postition : Last_Real_Position;
+    row < remainder ? Penultimate_Real_Postition : Last_Real_Position;
   let designate_col = (~row, ~column, ~last_full_col, ~remainder) =>
-    (column == last_full_col) ?
+    column == last_full_col ?
       Last_Full_Column(designate_real(~row, ~remainder)) : Full_Column;
   let location_to_index = (~row, ~column, ~depth) => column * depth + row;
   let traverse = (text_a, ~text_len, ~depth) => {
@@ -240,7 +237,7 @@ module Rail_Fence = {
         [current_letter, final_row_letter, ...next_letters];
       | Last_Full_Column(Last_Real_Position) =>
         let current_i = location_to_index(~row, ~column, ~depth);
-        (row < depth - 1) ?
+        row < depth - 1 ?
           {
             let current_letter = CCImmutArray.get(text_a, current_i);
             let row = row + 1;
@@ -267,10 +264,10 @@ module Rail_Fence = {
       (start_ind, depth, base_columns, remainder, text_len, text) => {
     let rec grab = (at, depth, base_columns, offsets_left, text_len, text) => {
       let current = CCImmutArray.get(text, at);
-      let index_increment = (offsets_left > 0) ? (base_columns + 1) : base_columns;
+      let index_increment = offsets_left > 0 ? base_columns + 1 : base_columns;
       let next_index = at + index_increment;
       let next =
-        (next_index < text_len) ?
+        next_index < text_len ?
           grab(
             next_index,
             depth,
@@ -286,7 +283,7 @@ module Rail_Fence = {
   };
   let extra_pass = (start_ind, depth, remainder, text) => {
     let rec grab = (at, depth, grab_count, text) =>
-      (grab_count > 0) ?
+      grab_count > 0 ?
         {
           let current = CCImmutArray.get(text, at);
           let next = grab(at + (depth + 1), depth, grab_count - 1, text);
@@ -300,7 +297,7 @@ module Rail_Fence = {
     let remainder = text_len mod depth;
     let rec handle =
             (current_pass, base_limit, depth, remainder, text_len, text) =>
-      (current_pass < base_limit) ?
+      current_pass < base_limit ?
         List.append(
           letters_pass(
             current_pass,
@@ -319,7 +316,7 @@ module Rail_Fence = {
             text,
           ),
         ) :
-        (remainder > 0) ? extra_pass(current_pass, depth, remainder, text) : [];
+        remainder > 0 ? extra_pass(current_pass, depth, remainder, text) : [];
     handle(0, base_limit, depth, remainder, text_len, text);
   };
   let transpose = (text, ~depth, ~mode) => {
@@ -338,10 +335,10 @@ module Row_Transpose = {
     module T = {
       type t = matrix_location;
       let compare = (a, b) =>
-        (a.row < b.row) ?
+        a.row < b.row ?
           (-1) :
-          (a.row > b.row) ?
-            1 : (a.column < b.column) ? (-1) : (a.column > b.column) ? 1 : 0;
+          a.row > b.row ?
+            1 : a.column < b.column ? (-1) : a.column > b.column ? 1 : 0;
       let sexp_of_t = entry =>
         Core_kernel.Sexp.List([
           Core_kernel.Sexp.Atom(Int.to_string(entry.row)),
@@ -353,7 +350,7 @@ module Row_Transpose = {
     include Core_kernel.Comparable.Make(T);
   };
   let increment_location = (location, column_count) =>
-    (location.column == column_count - 1) ?
+    location.column == column_count - 1 ?
       {row: location.row + 1, column: 0} :
       {...location, column: location.column + 1};
   let calculate_locations = (~cell_count, ~column_count) => {
@@ -374,7 +371,7 @@ module Row_Transpose = {
     calculate(cell_count, ());
   };
   let increment_location_dec = (location, row_count) =>
-    (location.row == row_count - 1) ?
+    location.row == row_count - 1 ?
       {row: 0, column: location.column + 1} :
       {...location, row: location.row + 1};
   let calculate_locations_dec = (~cell_count, ~row_count) => {
@@ -434,7 +431,7 @@ module Row_Transpose = {
     let proto_map = List.combine(locations, final_text_l);
     let map = Core_kernel.Map.of_alist_exn((module Loc_Comp), proto_map);
     let rec traverse_r = (map, row, column, rows, columns, column_list) =>
-      (row < rows - 1) ?
+      row < rows - 1 ?
         {
           let current =
             Core_kernel.Map.find_exn(
@@ -445,7 +442,7 @@ module Row_Transpose = {
             traverse_r(map, row + 1, column, rows, columns, column_list);
           [current, ...next];
         } :
-        (column < columns - 1) ?
+        column < columns - 1 ?
           {
             let current =
               Core_kernel.Map.find_exn(
@@ -488,7 +485,7 @@ module Row_Transpose = {
     let letter_map =
       Core_kernel.Map.of_alist_exn((module Loc_Comp), proto_map);
     let rec traverse_r = (map, row, column, rows, columns, column_map) =>
-      (column < columns - 1) ?
+      column < columns - 1 ?
         {
           let current =
             Core_kernel.Map.find_exn(
@@ -499,7 +496,7 @@ module Row_Transpose = {
             traverse_r(map, row, column + 1, rows, columns, column_map);
           [current, ...next];
         } :
-        (row < rows - 1) ?
+        row < rows - 1 ?
           {
             let current =
               Core_kernel.Map.find_exn(
@@ -531,10 +528,10 @@ module Vigenere = {
     switch (mode) {
     | Encrypt =>
       let out = a + b - 97;
-      (out > 122) ? (out - 26) : out;
+      out > 122 ? out - 26 : out;
     | Decrypt =>
       let out = a - b + 97;
-      (out < 97) ? (out + 26) : out;
+      out < 97 ? out + 26 : out;
     };
   let substitute = (text_letter, key_letter, ~mode) => {
     let text_index = letter_to_index(text_letter);
@@ -544,7 +541,7 @@ module Vigenere = {
   let process = (text, ~key, ~mode) => {
     let text_length = String.length(text);
     let rec repeat_key = (key, repetitions) =>
-      (repetitions > 1) ? (key ++ repeat_key(key, repetitions - 1)) : key;
+      repetitions > 1 ? key ++ repeat_key(key, repetitions - 1) : key;
     let key_length = String.length(key);
     let repetitions = text_length / key_length;
     let intermediate_key = repeat_key(key, repetitions);
@@ -588,22 +585,19 @@ let check_args = (~cipher_type, ~mode, ~text) =>
   | (Some(cipher_type), Some(mode), Some(text)) =>
     Fine(cipher_type, mode, text)
   | _ =>
-    Problems(
-      (
-        switch (text) {
-        | None => "Could not read input file\n"
-        | _ => ""
-        }
-      )
-      ++ (
-        switch (cipher_type, mode) {
-        | (None, None) => "Incorrect values for <CIPHER NAME> and <CIPHER MODE>\n"
-        | (_, None) => "Incorrect value for <CIPHER NAME>\n"
-        | (None, _) => "Incorrect value for <CIPHER MODE>\n"
-        | _ => ""
-        }
-      ),
-    )
+    let report_a =
+      switch (text) {
+      | None => "Could not read input file\n"
+      | _ => ""
+      };
+    let report_b =
+      switch (cipher_type, mode) {
+      | (None, None) => "Incorrect values for <CIPHER NAME> and <CIPHER MODE>\n"
+      | (_, None) => "Incorrect value for <CIPHER NAME>\n"
+      | (None, _) => "Incorrect value for <CIPHER MODE>\n"
+      | _ => ""
+      };
+    Problems(report_a ++ report_b);
   };
 
 type cipher_result =
@@ -615,8 +609,8 @@ let handle_result = res =>
   | Failure(problem_string) => print_endline(problem_string)
   | Success(out_file_name, out_text) =>
     let out_file = CCIO.File.make(out_file_name);
-    let final_out = out_text ++ "\n";
-    CCIO.File.write_exn(out_file, final_out);
+    let final_out_text = out_text ++ "\n";
+    CCIO.File.write_exn(out_file, final_out_text);
     print_endline("Success!");
   };
 
