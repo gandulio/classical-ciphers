@@ -539,9 +539,9 @@ module Vigenere = {
     fake_vigenere_matrix(text_index, key_index, mode) |> Char.chr;
   };
   let process = (text, ~key, ~mode) => {
-    let text_length = String.length(text);
     let rec repeat_key = (key, repetitions) =>
       repetitions > 1 ? key ++ repeat_key(key, repetitions - 1) : key;
+    let text_length = String.length(text);
     let key_length = String.length(key);
     let repetitions = text_length / key_length;
     let intermediate_key = repeat_key(key, repetitions);
