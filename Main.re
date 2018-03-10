@@ -8,7 +8,7 @@ type operation_mode =
 
 type matrix_location = {
   row: int,
-  column: int
+  column: int,
 };
 
 module Map = Core_kernel.Map;
@@ -27,7 +27,7 @@ module Caesar = {
   };
   let shift_letters = (input_string, ~by, ~mode) => {
     let by =
-      switch mode {
+      switch (mode) {
       | Encrypt => by
       | Decrypt => Int.neg(by)
       };
@@ -40,7 +40,7 @@ module Playfair = {
   type meta_matrix = {
     locations: Char_Map.t(matrix_location),
     indices: Char_Map.t(int),
-    array: CCImmutArray.t(char)
+    array: CCImmutArray.t(char),
   };
   type matrix_alignment =
     | Column
@@ -54,25 +54,29 @@ module Playfair = {
       "abcdefghiklmnopqrstuvwxyz" |> String.to_list |> Char_Set.of_list;
     let key_l = key |> strip_j |> String.to_list;
     let key_s = Char_Set.of_list(key_l);
-    let filtered_alphabet = Char_Set.diff(alphabet, key_s) |> Char_Set.to_list;
+    let filtered_alphabet =
+      Char_Set.diff(alphabet, key_s) |> Char_Set.to_list;
     List.append(key_l, filtered_alphabet);
   };
   let increment_location = location =>
-    switch location.column {
+    switch (location.column) {
     | 4 => {row: location.row + 1, column: 0}
     | _ => {...location, column: location.column + 1}
     };
   let calculate_locations = () => {
     let rec calculate = (cells_remaining, ~previous=?, ()) =>
-      switch cells_remaining {
+      switch (cells_remaining) {
       | 0 => []
       | _ =>
         let location =
-          switch previous {
+          switch (previous) {
           | Some(location) => increment_location(location)
           | None => {row: 0, column: 0} /* This case only occurs for 1st element */
           };
-        [location, ...calculate(cells_remaining - 1, ~previous=location, ())];
+        [
+          location,
+          ...calculate(cells_remaining - 1, ~previous=location, ()),
+        ];
       };
     let cell_count = 25;
     calculate(cell_count, ());
@@ -89,7 +93,7 @@ module Playfair = {
     };
   };
   let rec insert_needed_filler = word_l =>
-    switch word_l {
+    switch (word_l) {
     | [first, second, ...rest] =>
       Char.equal(first, second) ?
         [first, 'x', ...insert_needed_filler([second, ...rest])] :
@@ -108,7 +112,7 @@ module Playfair = {
   let circular_row_shift = (letter, ~letters, ~mode) => {
     let index = Map.find_exn(letters.indices, letter);
     let new_index =
-      switch mode {
+      switch (mode) {
       | Encrypt =>
         switch ((index + 1) mod 5) {
         | 0 => index - 4
@@ -125,9 +129,9 @@ module Playfair = {
   let circular_column_shift = (letter, ~letters, ~mode) => {
     let index = Map.find_exn(letters.indices, letter);
     let new_index =
-      switch mode {
-      | Encrypt => index > 19 ? index - 20 : index + 5
-      | Decrypt => index < 5 ? index + 20 : index - 5
+      switch (mode) {
+      | Encrypt => (index > 19) ? (index - 20) : (index + 5)
+      | Decrypt => (index < 5) ? (index + 20) : (index - 5)
       };
     CCImmutArray.get(letters.array, new_index);
   };
@@ -149,11 +153,11 @@ module Playfair = {
     switch (get_alignment(pair, letters.locations)) {
     | Column => [
         circular_column_shift(List.nth(pair, 0), ~letters, ~mode),
-        circular_column_shift(List.nth(pair, 1), ~letters, ~mode)
+        circular_column_shift(List.nth(pair, 1), ~letters, ~mode),
       ]
     | Row => [
         circular_row_shift(List.nth(pair, 0), ~letters, ~mode),
-        circular_row_shift(List.nth(pair, 1), ~letters, ~mode)
+        circular_row_shift(List.nth(pair, 1), ~letters, ~mode),
       ]
     | None => alternate_replace(pair, ~letters)
     };
@@ -163,10 +167,10 @@ module Playfair = {
     let m_matrix = {
       locations: build_map(proto_matrix),
       indices: List.combine(proto_matrix, 0 -- 24) |> Char_Map.of_alist_exn,
-      array: CCImmutArray.of_list(proto_matrix)
+      array: CCImmutArray.of_list(proto_matrix),
     };
     let final_text_l =
-      switch mode {
+      switch (mode) {
       | Encrypt =>
         text
         |> strip_j
@@ -202,7 +206,7 @@ module Rail_Fence = {
             (text_a, ~row, ~column, ~last_full_col, ~remainder, ~depth) => {
       let col_designation =
         designate_col(~row, ~column, ~last_full_col, ~remainder);
-      switch col_designation {
+      switch (col_designation) {
       | Full_Column =>
         let current_i = location_to_index(~row, ~column, ~depth);
         let current_letter = CCImmutArray.get(text_a, current_i);
@@ -214,7 +218,7 @@ module Rail_Fence = {
             ~column,
             ~last_full_col,
             ~remainder,
-            ~depth
+            ~depth,
           );
         [current_letter, ...next_letters];
       | Last_Full_Column(Penultimate_Real_Postition) =>
@@ -231,7 +235,7 @@ module Rail_Fence = {
             ~column=0,
             ~last_full_col,
             ~remainder,
-            ~depth
+            ~depth,
           );
         [current_letter, final_row_letter, ...next_letters];
       | Last_Full_Column(Last_Real_Position) =>
@@ -247,7 +251,7 @@ module Rail_Fence = {
                 ~column=0,
                 ~last_full_col,
                 ~remainder,
-                ~depth
+                ~depth,
               );
             [current_letter, ...next_letters];
           } :
@@ -259,46 +263,64 @@ module Rail_Fence = {
     let remainder = text_len - full_columns * depth;
     traverse_r(text_a, ~row=0, ~column=0, ~last_full_col, ~remainder, ~depth);
   };
-  let letters_pass = (start_ind, depth, base_columns, remainder, text_len, text) => {
+  let letters_pass =
+      (start_ind, depth, base_columns, remainder, text_len, text) => {
     let rec grab = (at, depth, base_columns, offsets_left, text_len, text) => {
       let current = CCImmutArray.get(text, at);
       let index_increment = (offsets_left > 0) ? (base_columns + 1) : base_columns;
       let next_index = at + index_increment;
-      let next = (next_index < text_len) ? 
-        grab(next_index, depth, base_columns, offsets_left - 1, text_len, text) : [];
-      [current, ...next]
+      let next =
+        (next_index < text_len) ?
+          grab(
+            next_index,
+            depth,
+            base_columns,
+            offsets_left - 1,
+            text_len,
+            text,
+          ) :
+          [];
+      [current, ...next];
     };
-    grab(start_ind, depth, base_columns, remainder, text_len, text)
+    grab(start_ind, depth, base_columns, remainder, text_len, text);
   };
   let extra_pass = (start_ind, depth, remainder, text) => {
-    let rec grab = (at, depth, grab_count, text) => {
-      switch (grab_count > 0) {
-      | true => {
-        let current = CCImmutArray.get(text, at);
-        let next = grab(at + (depth + 1), depth, grab_count - 1, text);
-        [current, ...next]
-      }
-      | false => []
-      }
-    };
-    grab(start_ind, depth, remainder, text)
+    let rec grab = (at, depth, grab_count, text) =>
+      (grab_count > 0) ?
+        {
+          let current = CCImmutArray.get(text, at);
+          let next = grab(at + (depth + 1), depth, grab_count - 1, text);
+          [current, ...next];
+        } :
+        [];
+    grab(start_ind, depth, remainder, text);
   };
   let do_passes = (depth, text_len, text) => {
     let base_limit = text_len / depth;
     let remainder = text_len mod depth;
-    let rec handle = (current_pass, base_limit, depth, remainder, text_len, text) => {
-      (current_pass < base_limit) ? ({
+    let rec handle =
+            (current_pass, base_limit, depth, remainder, text_len, text) =>
+      (current_pass < base_limit) ?
         List.append(
-          letters_pass(current_pass, depth, base_limit, remainder, text_len, text), 
-          handle(current_pass + 1, base_limit, depth, remainder, text_len, text)
-        )}) : 
-        ({
-          (remainder > 0) ?
-          extra_pass(current_pass, depth, remainder, text) :
-          []
-        })
-    };
-    handle(0, base_limit, depth, remainder, text_len, text)
+          letters_pass(
+            current_pass,
+            depth,
+            base_limit,
+            remainder,
+            text_len,
+            text,
+          ),
+          handle(
+            current_pass + 1,
+            base_limit,
+            depth,
+            remainder,
+            text_len,
+            text,
+          ),
+        ) :
+        (remainder > 0) ? extra_pass(current_pass, depth, remainder, text) : [];
+    handle(0, base_limit, depth, remainder, text_len, text);
   };
   let transpose = (text, ~depth, ~mode) => {
     let text_len = String.length(text);
@@ -323,7 +345,7 @@ module Row_Transpose = {
       let sexp_of_t = entry =>
         Core_kernel.Sexp.List([
           Core_kernel.Sexp.Atom(Int.to_string(entry.row)),
-          Core_kernel.Sexp.Atom(Int.to_string(entry.column))
+          Core_kernel.Sexp.Atom(Int.to_string(entry.column)),
         ]);
       let t_of_sexp = _e => {row: 0, column: 0};
     };
@@ -336,7 +358,7 @@ module Row_Transpose = {
       {...location, column: location.column + 1};
   let calculate_locations = (~cell_count, ~column_count) => {
     let rec calculate = (cells_remaining, ~previous=?, ()) =>
-      switch cells_remaining {
+      switch (cells_remaining) {
       | 0 => []
       | _ =>
         let location =
@@ -344,7 +366,10 @@ module Row_Transpose = {
           | Some(location) => increment_location(location, column_count)
           | None => {row: 0, column: 0} /* This case only occurs for 1st element */
           };
-        [location, ...calculate(cells_remaining - 1, ~previous=location, ())];
+        [
+          location,
+          ...calculate(cells_remaining - 1, ~previous=location, ()),
+        ];
       };
     calculate(cell_count, ());
   };
@@ -354,15 +379,18 @@ module Row_Transpose = {
       {...location, row: location.row + 1};
   let calculate_locations_dec = (~cell_count, ~row_count) => {
     let rec calculate = (cells_remaining, ~previous=?, ()) =>
-      switch cells_remaining {
+      switch (cells_remaining) {
       | 0 => []
       | _ =>
         let location =
-          switch previous {
+          switch (previous) {
           | Some(location) => increment_location_dec(location, row_count)
           | None => {row: 0, column: 0} /* This case only occurs for 1st element */
           };
-        [location, ...calculate(cells_remaining - 1, ~previous=location, ())];
+        [
+          location,
+          ...calculate(cells_remaining - 1, ~previous=location, ()),
+        ];
       };
     calculate(cell_count, ());
   };
@@ -384,7 +412,7 @@ module Row_Transpose = {
           let value_s = String.make(1, value);
           int_of_string(value_s) - 1;
         },
-        key_l_temp
+        key_l_temp,
       )
       |> Array.of_list;
     let text_len = String.length(text);
@@ -409,7 +437,10 @@ module Row_Transpose = {
       (row < rows - 1) ?
         {
           let current =
-            Core_kernel.Map.find_exn(map, {row, column: column_list[column]});
+            Core_kernel.Map.find_exn(
+              map,
+              {row, column: column_list[column]},
+            );
           let next =
             traverse_r(map, row + 1, column, rows, columns, column_list);
           [current, ...next];
@@ -419,13 +450,15 @@ module Row_Transpose = {
             let current =
               Core_kernel.Map.find_exn(
                 map,
-                {row, column: column_list[column]}
+                {row, column: column_list[column]},
               );
             let next =
               traverse_r(map, 0, column + 1, rows, columns, column_list);
             [current, ...next];
           } :
-          [Core_kernel.Map.find_exn(map, {row, column: column_list[column]})];
+          [
+            Core_kernel.Map.find_exn(map, {row, column: column_list[column]}),
+          ];
     let output_l = traverse_r(map, 0, 0, rows, columns, key_l);
     String.of_list(output_l);
   };
@@ -442,7 +475,7 @@ module Row_Transpose = {
           let value_s = String.make(1, value);
           int_of_string(value_s) - 1;
         },
-        key_l_temp
+        key_l_temp,
       );
     let bidir_map = make_multi(key_l);
     let text_len = String.length(text);
@@ -460,7 +493,7 @@ module Row_Transpose = {
           let current =
             Core_kernel.Map.find_exn(
               map,
-              {row, column: map_get(column_map, column)}
+              {row, column: map_get(column_map, column)},
             );
           let next =
             traverse_r(map, row, column + 1, rows, columns, column_map);
@@ -471,7 +504,7 @@ module Row_Transpose = {
             let current =
               Core_kernel.Map.find_exn(
                 map,
-                {row, column: map_get(column_map, column)}
+                {row, column: map_get(column_map, column)},
               );
             let next = traverse_r(map, row + 1, 0, rows, columns, column_map);
             [current, ...next];
@@ -479,14 +512,14 @@ module Row_Transpose = {
           [
             Core_kernel.Map.find_exn(
               map,
-              {row, column: map_get(column_map, column)}
-            )
+              {row, column: map_get(column_map, column)},
+            ),
           ];
     let output_l = traverse_r(letter_map, 0, 0, rows, columns, bidir_map);
     String.of_list(output_l);
   };
   let process = (text, ~key, ~mode) =>
-    switch mode {
+    switch (mode) {
     | Encrypt => process_en(text, ~key)
     | Decrypt => process_dec(text, ~key)
     };
@@ -494,18 +527,15 @@ module Row_Transpose = {
 
 module Vigenere = {
   let letter_to_index = letter => Char.code(letter);
-  let fake_vigenere_matrix = (a, b, mode) => {
+  let fake_vigenere_matrix = (a, b, mode) =>
     switch (mode) {
-    | Encrypt => {
-        let out = (a + b) - 97;
-        (out > 122) ? (out - 26) : out
-      }
-    | Decrypt => {
-        let out = (a - b) + 97;
-        (out < 97) ? (out + 26) : out
-      }
-    }
-  };
+    | Encrypt =>
+      let out = a + b - 97;
+      (out > 122) ? (out - 26) : out;
+    | Decrypt =>
+      let out = a - b + 97;
+      (out < 97) ? (out + 26) : out;
+    };
   let substitute = (text_letter, key_letter, ~mode) => {
     let text_index = letter_to_index(text_letter);
     let key_index = letter_to_index(key_letter);
@@ -526,7 +556,7 @@ module Vigenere = {
 };
 
 let mode_string_to_type = mode_s =>
-  switch mode_s {
+  switch (mode_s) {
   | "ENC" => Some(Encrypt)
   | "DEC" => Some(Decrypt)
   | _ => None
@@ -540,7 +570,7 @@ type cipher =
   | Vigenere;
 
 let cipher_name_to_type = name_s =>
-  switch name_s {
+  switch (name_s) {
   | "CES" => Some(Caesar)
   | "PLF" => Some(Playfair)
   | "RFC" => Some(Rail_Fence)
@@ -560,36 +590,34 @@ let check_args = (~cipher_type, ~mode, ~text) =>
   | _ =>
     Problems(
       (
-        switch text {
+        switch (text) {
         | None => "Could not read input file\n"
         | _ => ""
         }
       )
-      ++ 
-      (
+      ++ (
         switch (cipher_type, mode) {
         | (None, None) => "Incorrect values for <CIPHER NAME> and <CIPHER MODE>\n"
         | (_, None) => "Incorrect value for <CIPHER NAME>\n"
         | (None, _) => "Incorrect value for <CIPHER MODE>\n"
         | _ => ""
         }
-      )
+      ),
     )
   };
 
-type cipher_result = 
+type cipher_result =
   | Success(string, string)
   | Failure(string);
 
 let handle_result = res =>
   switch (res) {
   | Failure(problem_string) => print_endline(problem_string)
-  | Success(out_file_name, out_text) => {
-      let out_file = CCIO.File.make(out_file_name);
-      let final_out = out_text ++ "\n";
-      CCIO.File.write_exn(out_file, final_out);
-      print_endline("Success!")
-    }
+  | Success(out_file_name, out_text) =>
+    let out_file = CCIO.File.make(out_file_name);
+    let final_out = out_text ++ "\n";
+    CCIO.File.write_exn(out_file, final_out);
+    print_endline("Success!");
   };
 
 let main = () => {
@@ -601,7 +629,7 @@ let main = () => {
      */
   /* TODO Split this up into functions */
   (
-    switch arg_count {
+    switch (arg_count) {
     | x when x < 6 => Failure("Not enough arguments")
     | x when x > 6 => Failure("Too many arguments")
     | _ =>
@@ -610,12 +638,12 @@ let main = () => {
       let mode = List.nth(arg_values, 3) |> mode_string_to_type;
       let input_file_name = List.nth(arg_values, 4);
       let output_file_name = List.nth(arg_values, 5);
-      let text = CCIO.(with_in(input_file_name, read_line));
-      switch (check_args(~cipher_type, ~mode, ~text)) {
+      let input_text = CCIO.(with_in(input_file_name, read_line));
+      switch (check_args(~cipher_type, ~mode, ~text=input_text)) {
       | Problems(p_str) => Failure(p_str)
       | Fine(cipher_type, mode, text) =>
-        let out_text = 
-          switch cipher_type {
+        let out_text =
+          switch (cipher_type) {
           | Caesar =>
             /* TODO: Handle case where parse fails */
             let by = int_of_string(key);
@@ -627,8 +655,8 @@ let main = () => {
           | Row_Transpose => Row_Transpose.process(text, ~key, ~mode)
           | Vigenere => Vigenere.process(text, ~key, ~mode)
           };
-        Success(output_file_name, out_text)
-      }
+        Success(output_file_name, out_text);
+      };
     }
   )
   |> handle_result;
