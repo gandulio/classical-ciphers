@@ -74,7 +74,7 @@ module Playfair = {
           };
         [
           location,
-          ...calculate(cells_remaining - 1, ~previous=location, ()),
+          ...calculate(cells_remaining - 1, ~previous=location, ())
         ];
       };
     let cell_count = 25;
@@ -215,7 +215,7 @@ module Rail_Fence = {
             ~column,
             ~last_full_col,
             ~remainder,
-            ~depth,
+            ~depth
           );
         [current_letter, ...next_letters];
       | Last_Full_Column(Penultimate_Real_Postition) =>
@@ -232,7 +232,7 @@ module Rail_Fence = {
             ~column=0,
             ~last_full_col,
             ~remainder,
-            ~depth,
+            ~depth
           );
         [current_letter, final_row_letter, ...next_letters];
       | Last_Full_Column(Last_Real_Position) =>
@@ -248,7 +248,7 @@ module Rail_Fence = {
                 ~column=0,
                 ~last_full_col,
                 ~remainder,
-                ~depth,
+                ~depth
               );
             [current_letter, ...next_letters];
           } :
@@ -274,7 +274,7 @@ module Rail_Fence = {
             base_columns,
             offsets_left - 1,
             text_len,
-            text,
+            text
           ) :
           [];
       [current, ...next];
@@ -305,7 +305,7 @@ module Rail_Fence = {
             base_limit,
             remainder,
             text_len,
-            text,
+            text
           ),
           handle(
             current_pass + 1,
@@ -313,8 +313,8 @@ module Rail_Fence = {
             depth,
             remainder,
             text_len,
-            text,
-          ),
+            text
+          )
         ) :
         remainder > 0 ? extra_pass(current_pass, depth, remainder, text) : [];
     handle(0, base_limit, depth, remainder, text_len, text);
@@ -365,7 +365,7 @@ module Row_Transpose = {
           };
         [
           location,
-          ...calculate(cells_remaining - 1, ~previous=location, ()),
+          ...calculate(cells_remaining - 1, ~previous=location, ())
         ];
       };
     calculate(cell_count, ());
@@ -386,7 +386,7 @@ module Row_Transpose = {
           };
         [
           location,
-          ...calculate(cells_remaining - 1, ~previous=location, ()),
+          ...calculate(cells_remaining - 1, ~previous=location, ())
         ];
       };
     calculate(cell_count, ());
@@ -409,7 +409,7 @@ module Row_Transpose = {
           let value_s = String.make(1, value);
           int_of_string(value_s) - 1;
         },
-        key_l_temp,
+        key_l_temp
       )
       |> Array.of_list;
     let text_len = String.length(text);
@@ -436,7 +436,7 @@ module Row_Transpose = {
           let current =
             Core_kernel.Map.find_exn(
               map,
-              {row, column: column_list[column]},
+              {row, column: column_list[column]}
             );
           let next =
             traverse_r(map, row + 1, column, rows, columns, column_list);
@@ -447,7 +447,7 @@ module Row_Transpose = {
             let current =
               Core_kernel.Map.find_exn(
                 map,
-                {row, column: column_list[column]},
+                {row, column: column_list[column]}
               );
             let next =
               traverse_r(map, 0, column + 1, rows, columns, column_list);
@@ -472,7 +472,7 @@ module Row_Transpose = {
           let value_s = String.make(1, value);
           int_of_string(value_s) - 1;
         },
-        key_l_temp,
+        key_l_temp
       );
     let bidir_map = make_multi(key_l);
     let text_len = String.length(text);
@@ -490,7 +490,7 @@ module Row_Transpose = {
           let current =
             Core_kernel.Map.find_exn(
               map,
-              {row, column: map_get(column_map, column)},
+              {row, column: map_get(column_map, column)}
             );
           let next =
             traverse_r(map, row, column + 1, rows, columns, column_map);
@@ -501,7 +501,7 @@ module Row_Transpose = {
             let current =
               Core_kernel.Map.find_exn(
                 map,
-                {row, column: map_get(column_map, column)},
+                {row, column: map_get(column_map, column)}
               );
             let next = traverse_r(map, row + 1, 0, rows, columns, column_map);
             [current, ...next];
@@ -509,8 +509,8 @@ module Row_Transpose = {
           [
             Core_kernel.Map.find_exn(
               map,
-              {row, column: map_get(column_map, column)},
-            ),
+              {row, column: map_get(column_map, column)}
+            )
           ];
     let output_l = traverse_r(letter_map, 0, 0, rows, columns, bidir_map);
     String.of_list(output_l);
