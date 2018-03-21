@@ -29,6 +29,9 @@ let process = (text, ~key, ~mode) => {
   let intermediate_key = repeat_key(key, repetitions);
   let cap_key = (key, remainder) => key ++ String.sub(key, 0, remainder);
   let remainder = text_length mod key_length;
-  let final_key = cap_key(intermediate_key, remainder);
+  let final_key =
+    String.length(intermediate_key) > text_length ?
+      String.sub(intermediate_key, 0, text_length) :
+      cap_key(intermediate_key, remainder);
   String.map2(substitute(~mode), text, final_key);
 };
