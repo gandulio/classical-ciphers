@@ -20,11 +20,27 @@ type matrix_alignment =
 let strip_j = input_string =>
   String.replace(~which=`All, ~sub="j", ~by="i", input_string);
 
+let is_duplicate = (letter_a, letters_l) =>
+  List.exists(letter_b => Char.equal(letter_a, letter_b), letters_l);
+
+let rec handle_key_duplicates = (key_l, ~letters_l) =>
+  switch key_l {
+  | [first, ...rest] =>
+    is_duplicate(first, letters_l) ?
+      handle_key_duplicates(rest, ~letters_l) :
+      {
+        let new_l = [first, ...letters_l];
+        [first, ...handle_key_duplicates(rest, ~letters_l=new_l)];
+      }
+  | [] => []
+  };
+
 let build_list = key => {
   module Char_Set = Set.Make(Char);
   let alphabet =
     "abcdefghiklmnopqrstuvwxyz" |> String.to_list |> Char_Set.of_list;
-  let key_l = key |> strip_j |> String.to_list;
+  let key_l =
+    key |> strip_j |> String.to_list |> handle_key_duplicates(~letters_l=[]);
   let key_s = Char_Set.of_list(key_l);
   let filtered_alphabet = Char_Set.diff(alphabet, key_s) |> Char_Set.to_list;
   List.append(key_l, filtered_alphabet);
@@ -142,7 +158,6 @@ let substitute_pair = (pair, ~letters, ~mode) =>
   };
 
 let substitute = (input_text, ~key, ~mode) => {
-  /* TODO: handle removal of duplicates from provided key */
   let proto_matrix = build_list(key);
   let m_matrix = {
     locations: build_map(proto_matrix),
