@@ -1,2 +1,2 @@
 #!/bin/bash
-_build/default/main.exe $@
+_build/default/main.bc $@
