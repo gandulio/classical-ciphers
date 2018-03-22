@@ -14,12 +14,16 @@ let designate_real = (~row, ~remainder) =>
   row < remainder ? Penultimate_Real_Postition : Last_Real_Position;
 
 let designate_col = (~row, ~column, ~last_full_col, ~remainder) =>
-  column == last_full_col ?
-    Last_Full_Column(designate_real(~row, ~remainder)) : Full_Column;
+  last_full_col < 1 ?
+    Last_Full_Column(
+      Last_Real_Position
+    ) : /* In this case there is only one column */
+    column == last_full_col ?
+      Last_Full_Column(designate_real(~row, ~remainder)) : Full_Column;
 
 let location_to_index = (~row, ~column, ~depth) => column * depth + row;
 
-let traverse = (text_a, ~text_len, ~depth) => {
+let traverse = (text_a: CCImmutArray.t(char), ~text_len, ~depth) => {
   let rec traverse_r =
           (text_a, ~row, ~column, ~last_full_col, ~remainder, ~depth) => {
     let col_designation =
@@ -51,7 +55,7 @@ let traverse = (text_a, ~text_len, ~depth) => {
       [current_letter, final_row_letter, ...next_letters];
     | Last_Full_Column(Last_Real_Position) =>
       let current_i = location_to_index(~row, ~column, ~depth);
-      row < depth - 1 ?
+      row < depth - 1 && row < text_len - 1 ?
         {
           let current_letter = CCImmutArray.get(text_a, current_i);
           let row = row + 1;
