@@ -1,2 +1,2 @@
 #!/bin/bash
-jbuilder build main.exe --dev
+jbuilder build main.bc --dev
