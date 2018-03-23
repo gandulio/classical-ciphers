@@ -74,6 +74,12 @@ let make_multi = column_list => {
   make(column_list, 0, map);
 };
 
+let append_filler = (text, fill_length) => {
+  let filler = "abcdefghijklmnopqrstuvwxyz"; /* I'm assuming that the key value will never be greater than 26 */
+  let suffix = String.sub(filler, 26 - fill_length, fill_length);
+  String.concat("", [text, suffix]);
+};
+
 let process_en = (text, ~key) => {
   let key_l_temp = String.to_list(key);
   let key_l =
@@ -96,7 +102,9 @@ let process_en = (text, ~key) => {
   let final_text =
     switch (text_len mod columns) {
     | 0 => text
-    | _ => String.pad(~side=`Right, ~c='x', rows * columns, text)
+    | _ =>
+      let fill_length = rows * columns - text_len;
+      append_filler(text, fill_length);
     };
   let final_text_l = String.to_list(final_text);
   let locations =
