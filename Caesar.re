@@ -2,15 +2,15 @@ open Containers;
 
 open Common;
 
+let ascii_to_alpha = code => CCInt.rem(code - 97, 26);
+
+let alpha_to_ascii = value => value + 97;
+
 let shift_letter = (letter, ~by as shift_amount) => {
-  let last_letter = 122; /* ASCII code for 'z' */
-  let first_letter = 97; /* ASCII code for 'a' */
-  let code_ceiling = last_letter + 1;
-  let input_code = letter |> Char.lowercase_ascii |> Char.code;
-  let shifted_temp = (input_code + shift_amount) mod code_ceiling;
-  let shifted =
-    shifted_temp < first_letter ? shifted_temp + first_letter : shifted_temp;
-  Char.chr(shifted);
+  let input_code =
+    letter |> Char.lowercase_ascii |> Char.code |> ascii_to_alpha;
+  let shifted_temp = input_code + shift_amount;
+  CCInt.rem(shifted_temp, 26) |> alpha_to_ascii |> Char.chr;
 };
 
 let shift_letters = (input_string, ~by, ~mode) => {
