@@ -100,12 +100,12 @@ let letters_pass = (start_ind, depth, base_columns, remainder, text_len, text) =
   grab(start_ind, depth, base_columns, remainder, text_len, text);
 };
 
-let extra_pass = (start_ind, depth, remainder, text) => {
+let extra_pass = (start_ind, depth, remainder, distance, text) => {
   let rec grab = (at, depth, grab_count, text) =>
     grab_count > 0 ?
       {
         let current = CCImmutArray.get(text, at);
-        let next = grab(at + (depth + 1), depth, grab_count - 1, text);
+        let next = grab(at + distance, depth, grab_count - 1, text);
         [current, ...next];
       } :
       [];
@@ -128,7 +128,8 @@ let do_passes = (depth, text_len, text) => {
         ),
         handle(current_pass + 1, base_limit, depth, remainder, text_len, text)
       ) :
-      remainder > 0 ? extra_pass(current_pass, depth, remainder, text) : [];
+      remainder > 0 ?
+        extra_pass(current_pass, depth, remainder, base_limit + 1, text) : [];
   handle(0, base_limit, depth, remainder, text_len, text);
 };
 
